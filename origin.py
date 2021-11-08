@@ -25,9 +25,8 @@ def rand_arr(a, b, *args):
 class LstmParam:
     def __init__(self, mem_cell_ct, x_dim):
         self.mem_cell_ct = mem_cell_ct
-        self.x_dim = x_dim//2
-        self.total_dim = x_dim
-        concat_len = x_dim//2 + mem_cell_ct
+        self.x_dim = x_dim
+        concat_len = x_dim + mem_cell_ct
         # weight matrices
         self.wg = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
         self.wi = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
@@ -87,8 +86,6 @@ class LstmNode:
         self.param = lstm_param
         # non-recurrent input concatenated with recurrent input
         self.xc = None
-        self.xc1 = None
-        self.xc2 = None
 
     def bottom_data_is(self, x, s_prev=None, h_prev=None):
         # if this is the first lstm node in the network
@@ -99,24 +96,15 @@ class LstmNode:
         self.h_prev = h_prev
 
         # concatenate x(t) and h(t-1)
-        assert len(x)%2 == 0
-        length = len(x)//2
-
         xc = np.hstack((x, h_prev))
-        xc1 = np.hstack((x[:length], h_prev))
-        # x concat 2 是通过x input 的后半段的连接得到
-        xc2 = np.hstack((x[length:], h_prev))
-        # 只计算output gate时 采用xc2
-        self.state.g = np.tanh(np.dot(self.param.wg, xc1) + self.param.bg)
-        self.state.i = sigmoid(np.dot(self.param.wi, xc1) + self.param.bi)
-        self.state.f = sigmoid(np.dot(self.param.wf, xc1) + self.param.bf)
-        self.state.o = sigmoid(np.dot(self.param.wo, xc2) + self.param.bo)
+        self.state.g = np.tanh(np.dot(self.param.wg, xc) + self.param.bg)
+        self.state.i = sigmoid(np.dot(self.param.wi, xc) + self.param.bi)
+        self.state.f = sigmoid(np.dot(self.param.wf, xc) + self.param.bf)
+        self.state.o = sigmoid(np.dot(self.param.wo, xc) + self.param.bo)
         self.state.s = self.state.g * self.state.i + s_prev * self.state.f
         self.state.h = self.state.s * self.state.o
 
         self.xc = xc
-        self.xc1 = xc1
-        self.xc2 = xc2
 
     def top_diff_is(self, top_diff_h, top_diff_s):
         # notice that top_diff_s is carried along the constant error carousel
@@ -133,17 +121,17 @@ class LstmNode:
         dg_input = tanh_derivative(self.state.g) * dg
 
         # diffs w.r.t. inputs
-        self.param.wi_diff += np.outer(di_input, self.xc1)  # 此处的x_concat不同
-        self.param.wf_diff += np.outer(df_input, self.xc1)
-        self.param.wo_diff += np.outer(do_input, self.xc2)
-        self.param.wg_diff += np.outer(dg_input, self.xc1)
+        self.param.wi_diff += np.outer(di_input, self.xc)
+        self.param.wf_diff += np.outer(df_input, self.xc)
+        self.param.wo_diff += np.outer(do_input, self.xc)
+        self.param.wg_diff += np.outer(dg_input, self.xc)
         self.param.bi_diff += di_input
         self.param.bf_diff += df_input
         self.param.bo_diff += do_input
         self.param.bg_diff += dg_input
 
         # compute bottom diff
-        dxc = np.zeros_like(self.xc1)  # 此处的大小更改
+        dxc = np.zeros_like(self.xc)
         dxc += np.dot(self.param.wi.T, di_input)
         dxc += np.dot(self.param.wf.T, df_input)
         dxc += np.dot(self.param.wo.T, do_input)
@@ -178,8 +166,8 @@ class LstmNetwork():
         self.lstm_node_list[idx].top_diff_is(diff_h, diff_s)
         idx -= 1
 
-        # ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
-        # we also propagate error along constant error carousel using diff_s
+        ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
+        ### we also propagate error along constant error carousel using diff_s
         while idx >= 0:
             loss += loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
             diff_h = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
