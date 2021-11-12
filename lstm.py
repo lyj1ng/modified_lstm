@@ -25,9 +25,9 @@ def rand_arr(a, b, *args):
 class LstmParam:
     def __init__(self, mem_cell_ct, x_dim):
         self.mem_cell_ct = mem_cell_ct
-        self.x_dim = x_dim//2
+        self.x_dim = x_dim // 2
         self.total_dim = x_dim
-        concat_len = x_dim//2 + mem_cell_ct
+        concat_len = x_dim // 2 + mem_cell_ct
         # weight matrices
         self.wg = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
         self.wi = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
@@ -99,8 +99,8 @@ class LstmNode:
         self.h_prev = h_prev
 
         # concatenate x(t) and h(t-1)
-        assert len(x)%2 == 0
-        length = len(x)//2
+        assert len(x) % 2 == 0
+        length = len(x) // 2
 
         xc = np.hstack((x, h_prev))
         xc1 = np.hstack((x[:length], h_prev))
@@ -169,6 +169,7 @@ class LstmNetwork():
         call self.lstm_param.apply_diff()
         """
         assert len(y_list) == len(self.x_list)
+        # 当y list只有最后一个
         idx = len(self.x_list) - 1
         # first node only gets diffs from label ...
         loss = loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
@@ -181,9 +182,9 @@ class LstmNetwork():
         # ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
         # we also propagate error along constant error carousel using diff_s
         while idx >= 0:
-            loss += loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
-            diff_h = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
-            diff_h += self.lstm_node_list[idx + 1].state.bottom_diff_h
+            # loss += loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
+            # diff_h = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
+            diff_h = self.lstm_node_list[idx + 1].state.bottom_diff_h
             diff_s = self.lstm_node_list[idx + 1].state.bottom_diff_s
             self.lstm_node_list[idx].top_diff_is(diff_h, diff_s)
             idx -= 1

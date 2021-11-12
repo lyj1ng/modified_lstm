@@ -87,8 +87,9 @@ def predict(model, x):
     for time_batch in x:
         for xx in time_batch:
             model.x_list_add(xx)
-        y_pred = [round(model.lstm_node_list[ind].state.h[0], 2) for ind in range(len(x))]
-        res.append(y_pred[-1])
+        y_pred = round(model.lstm_node_list[-1].state.h[0], 2)
+        model.x_list_clear()
+        res.append(y_pred)
     return res
 
 
@@ -112,11 +113,11 @@ if __name__ == "__main__":
         time_batch = []
         ty = []
         start_idx = np.random.randint(1, len(list4) // 2)
-        for j in range(10):
+        for j in range(20):
             xx = list4[start_idx:start_idx + 5]
             # xx = [xxx+np.random.randn()*0.1 for xxx in xx]
             yy = list4[start_idx + 5]
-            xx = [xxx + np.random.randn() * 0.1 for xxx in xx] + [yy+np.random.randn()*0.1 for k in range(5)]
+            xx = [xxx + np.random.randn() * 0.01 for xxx in xx] + [np.random.randn() for k in range(5)]
             # yy = list4[start_idx + 5]
             time_batch.append(xx)
             ty.append(yy)
@@ -125,15 +126,15 @@ if __name__ == "__main__":
         y.append(ty)
 
     xTest, yTest = [], []
-    for i in range(10):
+    for i in range(30):
         time_batch = []
         ty = []
         start_idx = np.random.randint(1, len(list4) // 2)
-        for j in range(10):
+        for j in range(20):
             xx = list4[start_idx:start_idx + 5]
             # xx = [xxx+np.random.randn()*0.1 for xxx in xx]
             yy = list4[start_idx + 5]
-            xx = [xxx + np.random.randn() * 0.1 for xxx in xx] + [yy+0.1*np.random.randn() for k in range(5)]
+            xx = [xxx + np.random.randn() * 0.01 for xxx in xx] + [np.random.randn() for k in range(5)]
 
             time_batch.append(xx)
             ty.append(yy)
@@ -141,7 +142,7 @@ if __name__ == "__main__":
         xTest.append(time_batch)
         yTest.append(ty)
 
-    lstmNet = train_lstm(x, y, epochs=500, validaion_data=(xTest, yTest))
+    lstmNet = train_lstm(x, y, epochs=200, validaion_data=(xTest, yTest))
     # lstmNet = train_lstm(x, y, epochs=100,  )
     result = predict(lstmNet, xTest)
     print(result, '\n', [yt[-1] for yt in yTest])

@@ -169,9 +169,9 @@ class LstmNetwork():
         ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
         ### we also propagate error along constant error carousel using diff_s
         while idx >= 0:
-            loss += loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
-            diff_h = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
-            diff_h += self.lstm_node_list[idx + 1].state.bottom_diff_h
+            # loss += loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
+            # diff_h = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
+            diff_h = self.lstm_node_list[idx + 1].state.bottom_diff_h
             diff_s = self.lstm_node_list[idx + 1].state.bottom_diff_s
             self.lstm_node_list[idx].top_diff_is(diff_h, diff_s)
             idx -= 1
